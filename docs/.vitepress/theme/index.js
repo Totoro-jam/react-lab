@@ -7,7 +7,7 @@ export default {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'doc-footer-before': () => h(GiscusComment),
+      'doc-after': () => h(GiscusComment),
     })
   },
 }
