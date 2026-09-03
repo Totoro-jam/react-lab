@@ -21,10 +21,7 @@ export default defineConfig({
       infoLabel: '信息',
       detailsLabel: '详细信息',
     },
-    codeCopyButton: {
-      tooltipText: '复制代码',
-      copiedText: '已复制',
-    },
+    codeCopyButtonTitle: '复制代码',
   },
 
   themeConfig: {
