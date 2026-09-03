@@ -146,6 +146,26 @@ react-lab/
 
 这意味着即使 React 源码后续发生文件重命名或删除，所有链接仍然有效。
 
+#### 锁定机制：commit 到底在哪里被固定？
+
+这里容易误解——**`.gitmodules` 本身并不锁定 commit**，它只声明「`react/` 是一个 submodule、克隆自 `facebook/react`」。真正把版本钉死的是下面两层，二者需保持一致：
+
+1. **Gitlink（git 层面的锁定）** —— 父仓库树里 `react` 是一个 `160000` 条目，`git ls-files -s react` 返回：
+   `160000 eafeac097ba51e1eab809c07102126bd5f8e5425 react`。
+   `git submodule update --init` 就是依据这条 gitlink 把 `react/` 检出到该 commit。
+2. **文档里的源码链接** —— 上表 370 处 `github.com/facebook/react/blob/eafeac097b/...` 是写死在 Markdown 里的 URL，**完全不受 submodule 控制**，需手工维护。
+
+一句话：gitlink 管「本地 `react/` 检出到哪个 commit」，文档链接管「网页跳转到哪个 commit」，`.gitmodules` 只声明路径和 URL。
+
+#### 未来更新计划（TODO）
+
+> 后续将**不定期**跟随 React 版本 / 新 commit 更新分析内容，大致的升级流程：
+
+- [ ] 在 `react/` 内 `git fetch` 并 `git checkout <新 hash>`，回父仓库 `git add react` 记录新 gitlink
+- [ ] 全局替换文档链接 `eafeac097b` → 新短 hash（含 `docs/reference/source-map.md` 里的完整 hash）
+- [ ] 更新本表与 `docs/reference/source-map.md` 顶部的快照说明
+- [ ] 逐篇核对受影响的源码分析（行为有变化的 API / 内部实现），修订对应内容
+
 详见 [源码文件索引](docs/reference/source-map.md)。
 
 ## 技术栈
