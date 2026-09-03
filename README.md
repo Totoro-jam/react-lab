@@ -30,11 +30,12 @@
 # 只克隆文档（不含 React 源码）
 git clone https://github.com/Totoro-jam/react-lab.git
 
-# 完整克隆（含 React 源码 submodule）
-git clone --recursive https://github.com/Totoro-jam/react-lab.git
+# 拉取 React 源码 submodule（锁定到固定 commit）
+# facebook/react 仓库很大，用 --depth 1 浅克隆即可，无需完整历史
+git submodule update --init --depth 1
 
-# 后续按需拉取 submodule
-git submodule update --init
+# 或者一步到位（含 submodule 的浅克隆）
+git clone --recursive --depth 1 --shallow-submodules https://github.com/Totoro-jam/react-lab.git
 ```
 
 ### 运行文档站
@@ -60,10 +61,12 @@ react-lab/
 ├── react/                              ← git submodule（React 官方源码）
 ├── docs/
 │   ├── .vitepress/
-│   │   ├── config.mjs                  ← VitePress 配置（sidebar、搜索、主题、中文 UI）
+│   │   ├── config.ts                   ← VitePress 配置（sidebar、搜索、主题、中文 UI）
 │   │   └── theme/
-│   │       ├── index.js                ← 自定义主题入口
-│   │       └── custom.css              ← antfu 风格 CSS 变量覆盖
+│   │       ├── index.js                ← 自定义主题入口（Layout + Giscus 评论插槽）
+│   │       ├── custom.css              ← antfu 风格 CSS 变量覆盖
+│   │       └── components/
+│   │           └── GiscusComment.vue   ← Giscus 评论组件
 │   ├── index.md                        ← 首页（Hero + Features）
 │   ├── 00-overview/                    ← 架构全景（6 篇）
 │   ├── 01-react-core/                  ← React 核心 API（6 篇）
@@ -80,7 +83,9 @@ react-lab/
 │   ├── 12-internal-mechanisms/         ← 内部辅助机制（4 篇）
 │   ├── practices/                      ← 实践练习推荐（7 篇）
 │   └── reference/                      ← 参考资料（7 篇）
-├── .github/workflows/deploy.yml        ← GitHub Pages 自动部署（pnpm）
+├── .github/workflows/
+│   ├── ci.yml                          ← CI 检查（markdownlint + VitePress 构建）
+│   └── deploy.yml                      ← GitHub Pages 自动部署（pnpm）
 ├── .gitmodules                         ← React submodule 声明
 ├── .markdownlint-cli2.jsonc            ← Markdown 格式 lint 配置
 ├── CONTRIBUTING.md                     ← 贡献指南
