@@ -1,0 +1,19 @@
+{
+  "name": "react-lab",
+  "version": "1.0.0",
+  "description": "系统深入理解 React 底层设计原理和源码实现",
+  "type": "module",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "vitepress dev docs",
+    "build": "vitepress build docs",
+    "preview": "vitepress preview docs",
+    "lint": "markdownlint-cli2",
+    "lint:fix": "markdownlint-cli2 --fix"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "^0.23.2",
+    "vitepress": "^1.5.0"
+  },
+  "repository": "https://github.com/Totoro-jam/react-lab.git"
+}
