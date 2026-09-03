@@ -2,7 +2,7 @@
 
 > 面向有前端开发经验、希望系统深入理解 React 底层设计原理和源码实现的工程师
 
-[在线阅读](https://react-lab.totorojam.com/) | [GitHub](https://github.com/Totoro-jam/react-lab)
+[在线阅读](https://react-lab.totorojam.com/)
 
 ## 这是什么
 
