@@ -297,24 +297,71 @@ export const frameYieldMs = 5; // 主线程被阻塞超过 5ms 后让出
 
 ## 10. 对生命周期的影响
 
-架构变化直接影响了对生命周期的设计：
+架构从 Stack Reconciler 换成 Fiber，最直接的影响之一就是对**类组件生命周期**的重新设计。根源在于：Fiber 的 Render 阶段**可中断、可重复、可丢弃**，而 Stack 的渲染是同步、一次性、不可打断的。
 
-| React 15 生命周期 | | React 16+ 生命周期 |
+### 10.1 为什么 `componentWill*` 变得"不安全"
+
+React 15 中，`componentWillMount`、`componentWillReceiveProps`、`componentWillUpdate` 都在真正修改 DOM 之前**恰好执行一次**，开发者可以在里面放心地做副作用（发请求、订阅、读 DOM）。
+
+Fiber 引入时间切片与并发渲染后，Render 阶段可能被更高优先级任务打断后**重新执行**，甚至整段丢弃。于是：
+
+- `componentWillMount` 可能执行多次（打断后重来），或执行了却最终未提交；
+- `componentWillReceiveProps`、`componentWillUpdate` 不再保证"只调用一次"。
+
+在这些方法里做副作用（`fetch`、订阅、`setState`、读 `window`）会导致请求重复发送、订阅泄漏、状态错乱。所以 React 16.3 起把它们标记为 unsafe，并给出替代方案。
+
+源码印证：在 [`ReactFiberClassComponent.js`](https://github.com/facebook/react/blob/eafeac097b/packages/react-reconciler/src/ReactFiberClassComponent.js) 中，`callComponentWillMount`、`callComponentWillReceiveProps`、`callComponentWillUpdate` 都在 `beginWork` 阶段（Render 阶段）被调用，而非 Commit 阶段。
+
+### 10.2 新旧生命周期对照
+
+| 时机 | React 15（Stack） | React 16+（Fiber） |
 | --- | --- | --- |
-| `componentWillMount` | | (废弃) `UNSAFE_componentWillMount` |
-| `componentWillReceiveProps` | | (废弃) `UNSAFE_componentWillReceiveProps` |
-| `componentWillUpdate` | | (废弃) `UNSAFE_componentWillUpdate` |
-| `render` | | `render`（Render 阶段，可中断） |
-| *Diff 阶段* | | `getDerivedStateFromProps` |
-| | | `shouldComponentUpdate` |
-| `componentDidUpdate` | | *Commit 阶段（不可中断）* |
-| `componentWillUnmount` | | `getSnapshotBeforeUpdate` |
-| | | `componentDidMount` |
-| | | `componentDidUpdate` |
-| | | `componentWillUnmount` |
+| 挂载前 | `componentWillMount` | `UNSAFE_componentWillMount`（废弃） |
+| 更新前 · 由 props 派生 state | `componentWillReceiveProps` | `static getDerivedStateFromProps` |
+| 更新前 · 读 DOM | `componentWillUpdate` | `getSnapshotBeforeUpdate` |
+| 渲染 | `render` | `render` |
+| 渲染前拦截 | `shouldComponentUpdate` | `shouldComponentUpdate` |
+| 挂载后 | `componentDidMount` | `componentDidMount` |
+| 更新后 | `componentDidUpdate` | `componentDidUpdate` |
+| 卸载前 | `componentWillUnmount` | `componentWillUnmount` |
 
-- 旧生命周期在 Diff 阶段执行，可能被多次调用（有副作用风险）
-- 现在明确区分：Render 阶段（可中断/重复）vs Commit 阶段（安全）
+**注意**：`UNSAFE_` 前缀只是"重命名 + 显式提醒"，方法本身在 React 19 源码里仍在（[`callComponentWillMount`](https://github.com/facebook/react/blob/eafeac097b/packages/react-reconciler/src/ReactFiberClassComponent.js) 仍会调用 `instance.componentWillMount()` 与 `instance.UNSAFE_componentWillMount()`），开发环境会告警。真正被取代的是"在 Render 阶段做副作用"的旧用法。
+
+### 10.3 两个新方法各解决什么
+
+**`static getDerivedStateFromProps(props, state)`** —— 替代 `componentWillReceiveProps` 里"由 props 派生 state"的用法：
+
+- 静态方法，拿不到 `this`，被迫保持纯（无副作用）；
+- 返回需要合并进 state 的对象，或 `null` 表示不变；
+- 挂载与每次更新都调用（React 16.4 起，`setState` / `forceUpdate` 也会触发，不限于 props 变化）。
+
+**`getSnapshotBeforeUpdate(prevProps, prevState)`** —— 替代 `componentWillUpdate` 里"更新前读 DOM"的用法：
+
+- 在 Commit 阶段、DOM 真正改动**之前**调用；
+- 返回的"快照"（如滚动位置）作为第三个参数传给 `componentDidUpdate`。
+
+而 `componentWillReceiveProps` / `componentWillUpdate` 里"基于变化做副作用"的部分，统一迁到 `componentDidUpdate`（配合守卫条件比较 prev/next）。
+
+### 10.4 明确的两阶段划分
+
+- **Render 阶段**（可中断/可重复，必须无副作用）：`constructor` → `getDerivedStateFromProps` → `shouldComponentUpdate` → `render` →（`UNSAFE_componentWill*`）
+- **Commit 阶段**（原子提交、不可中断，副作用安全）：`getSnapshotBeforeUpdate` → `componentDidMount` / `componentDidUpdate` → `componentWillUnmount`
+
+一句话总结：**旧生命周期在 Diff 阶段执行、可能被多次调用；新设计把"纯计算"留在 Render 阶段，把"副作用"赶到 Commit 阶段。**
+
+### 10.5 参考资料
+
+- [Update on Async Rendering](https://legacy.reactjs.org/blog/2018/03/27/update-on-async-rendering.html)（React 官方博客，说明 unsafe 的根因）
+- [React v16.3.0: New lifecycles and context API](https://legacy.reactjs.org/blog/2018/03/29/react-v-16-3.html)
+- [React v16.4.0](https://legacy.reactjs.org/blog/2018/05/23/react-v-16-4.html)（`getDerivedStateFromProps` 触发时机变更）
+- [You Probably Don't Need Derived State](https://legacy.reactjs.org/blog/2018/06/07/you-probably-dont-need-derived-state.html)
+- [React.Component 参考](https://react.dev/reference/react/Component)（各生命周期 API 文档）
+- [unsafe-component-lifecycles 迁移说明](https://react.dev/link/unsafe-component-lifecycles)
+- [How Are Function Components Different from Classes?](https://overreacted.io/how-are-function-components-different-from-classes/)（Dan Abramov，Overreacted）
+- [React 18 升级指南](https://react.dev/blog/2022/03/08/react-18-upgrade-guide)（StrictMode 双重调用）
+- [react-lifecycles-compat](https://github.com/reactjs/react-lifecycles-compat)（官方 polyfill，含新旧映射）
+- 源码：[`ReactFiberClassComponent.js`](https://github.com/facebook/react/blob/eafeac097b/packages/react-reconciler/src/ReactFiberClassComponent.js)（本仓库固定版本）
+- 源码：[`ReactBaseClasses.js`](https://github.com/facebook/react/blob/eafeac097b/packages/react/src/ReactBaseClasses.js)
 
 ## 11. React Foundation：治理独立化
 
