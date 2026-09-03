@@ -41,6 +41,11 @@ export default defineConfig({
       text: '最后更新于',
     },
 
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2026 Totoro-jam',
+    },
+
     returnToTopLabel: '回到顶部',
     sidebarMenuLabel: '菜单',
     darkModeSwitchLabel: '外观',

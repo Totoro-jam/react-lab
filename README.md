@@ -2,7 +2,7 @@
 
 > 面向有前端开发经验、希望系统深入理解 React 底层设计原理和源码实现的工程师
 
-[在线阅读](https://react-lab.totoro.jam/) | [GitHub 仓库](https://github.com/Totoro-jam/react-lab)
+[在线阅读](https://react-lab.totorojam.com/) | [GitHub](https://github.com/Totoro-jam/react-lab)
 
 ## 这是什么
 
@@ -20,7 +20,7 @@
 
 文档站已部署在 GitHub Pages，支持深色/浅色主题切换、全文搜索和评论讨论：
 
-**[https://react-lab.totoro.jam/](https://react-lab.totoro.jam/)**
+**[https://react-lab.totorojam.com/](https://react-lab.totorojam.com/)**
 
 ## 本地运行
 
@@ -43,7 +43,7 @@ git submodule update --init
 cd react-lab
 pnpm install
 pnpm dev
-# 打开 http://localhost:5173/react-lab/
+# 打开 http://localhost:5173/
 ```
 
 ### 构建静态站点
@@ -154,7 +154,7 @@ react-lab/
 
 ## 贡献
 
-欢迎提交 Issue 和 Pull Request！请先阅读 [贡献指南](CONTRIBUTING.md) 和 [源码阅读方法论](https://react-lab.totoro.jam/reference/reading-guide/)。
+欢迎提交 Issue 和 Pull Request！请先阅读 [贡献指南](CONTRIBUTING.md) 和 [源码阅读方法论](https://react-lab.totorojam.com/reference/reading-guide/)。
 
 ## 许可
 
